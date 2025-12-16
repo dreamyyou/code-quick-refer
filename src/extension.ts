@@ -1,6 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { generateReferencesCommand } from './references';
 
 function showHelloWorldMessage() {
   vscode.window.showInformationMessage('Hello World from code-quick-refer!');
@@ -17,8 +18,13 @@ export function activate(context: vscode.ExtensionContext) {
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
   const disposable = vscode.commands.registerCommand('code-quick-refer.helloWorld', showHelloWorldMessage);
+  const generateReferencesDisposable = vscode.commands.registerCommand(
+    'code-quick-refer.generateReferences',
+    generateReferencesCommand,
+  );
 
   context.subscriptions.push(disposable);
+  context.subscriptions.push(generateReferencesDisposable);
 }
 
 // This method is called when your extension is deactivated

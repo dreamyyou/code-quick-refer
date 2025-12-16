@@ -1,80 +1,92 @@
-# code-quick-refer README
+# code-quick-refer
 
-This is the README for your extension "code-quick-refer". After writing up a brief description, we recommend including the following sections.
+Generate “AI-friendly” code references from your current selection and copy them to clipboard.
 
-## Features
+## Usage
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- Editor context menu: `Generate References`
+- Command palette: `Generate References`
+- Default shortcut: `alt+d` (macOS)
 
-For example if there is an image subfolder under your extension project workspace:
+After running, references are copied to clipboard.
 
-\!\[feature X\]\(images/feature-x.png\)
+## Reference Format
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+```
+{relative/path/to/file}:{line} [{functionOrObjectName}]
+```
 
-## Requirements
+- `{relative/path/to/file}`: workspace-relative path
+- `{line}`: 1-based line number (selection start / cursor line)
+- `[{functionOrObjectName}]`: only generated for `Python (.py)`, `TypeScript/JavaScript (.ts/.tsx/.js/.jsx)`, `HTML (.html/.htm)`
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### Examples
+
+```
+src/extension.ts:12 [activate]
+src/references.ts:210 [MyClass.myMethod]
+templates/index.html:1 [div]
+```
+
+## How Names Are Detected
+
+### TypeScript / JavaScript
+
+- Multiple functions within the selection may produce multiple lines.
+- Supports:
+  - `function foo() {}`
+  - `const foo = () => {}` / `const foo = function () {}`
+  - class members: `ClassName.method` / `ClassName.property`
+  - object literal members (best-effort): `obj.method`
+- If the selection doesn’t include a recognizable definition, it falls back to the smallest enclosing expression at cursor; when it’s a property access, it returns `obj.method`.
+
+### Python
+
+- Multiple `def` within the selection may produce multiple lines.
+- Supports:
+  - top-level functions: `def foo(...):` → `foo`
+  - class methods: `class A: def m(...):` → `A.m`
+- If no `def` is found inside selection:
+  - when selection is an identifier chain like `obj.method`, returns `obj.method`
+  - otherwise falls back to the enclosing `def` at cursor (best-effort)
+
+### HTML
+
+- Best-effort: returns the nearest preceding opening tag name at cursor (e.g. `div`, `button`).
 
 ## Development
 
-### pre-commit
+### Prerequisites
+
+- Node.js (recommended: 22) + `pnpm`
+- Python 3.12 + `uv`
+
+### Install & Pre-commit
 
 ```bash
 pnpm install
 bash script/setup-pre-commit.sh
 ```
 
+### Common Commands
+
+```bash
+pnpm run lint
+pnpm run check-types
+pnpm run compile
+pnpm run test
+```
+
+## Custom ESLint Rules
+
+- Custom rules live in `rule/custom-rules.cjs`
+- Enabled via `eslint.config.mjs` under the `custom-rules/*` namespace
+
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+None.
 
-For example:
+## Known Limitations
 
-This extension contributes the following settings:
-
-- `myExtension.enable`: Enable/disable this extension.
-- `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-- [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Name detection is heuristic (especially for Python and HTML); when in doubt it still returns `{path}:{line}`.
+- Only the active editor selection is used.

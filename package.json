@@ -2,20 +2,44 @@
   "name": "code-quick-refer",
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.107.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:code-quick-refer.helloWorld",
+    "onCommand:code-quick-refer.generateReferences"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "code-quick-refer.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "code-quick-refer.generateReferences",
+        "title": "Generate References"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "code-quick-refer.generateReferences",
+          "when": "editorTextFocus",
+          "group": "navigation@10"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "code-quick-refer.generateReferences",
+        "key": "alt+d",
+        "mac": "alt+d",
+        "when": "editorTextFocus"
       }
     ]
   },
