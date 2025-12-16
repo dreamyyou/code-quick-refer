@@ -4,7 +4,7 @@ import * as ts from 'typescript';
 
 type ReferenceEntry = {
   relativePath: string;
-  line: number;
+  lineText: string;
   label: string | null;
 };
 
@@ -17,6 +17,7 @@ type TsTraversalState = {
   enclosingCandidate: ts.Node | null;
   enclosingCandidateWidth: number;
   relativePath: string;
+  lineText: string;
 };
 
 let currentTsTraversalState: TsTraversalState | null = null;
@@ -43,9 +44,9 @@ function buildReferencesText(editor: vscode.TextEditor): string | null {
   const selection = editor.selection;
 
   const relativePath = vscode.workspace.asRelativePath(document.uri, false);
-  const startLine = selection.isEmpty ? selection.active.line : selection.start.line;
-  const endLine = selection.isEmpty ? selection.active.line : selection.end.line;
+  const { startLine, endLine } = getSelectionLineRange(selection);
   const selectionText = selection.isEmpty ? '' : document.getText(selection);
+  const lineText = startLine === endLine ? `${startLine + 1}` : `${startLine + 1}-${endLine + 1}`;
 
   const fileName = document.fileName;
   const extension = path.extname(fileName).toLowerCase();
@@ -59,11 +60,12 @@ function buildReferencesText(editor: vscode.TextEditor): string | null {
   const entries: ReferenceEntry[] = [];
 
   if (extension === '.py') {
-    addPythonEntries(entries, relativePath, fullText, selectionText, startLine, endLine, startLine);
+    addPythonEntries(entries, relativePath, lineText, fullText, selectionText, startLine, endLine, startLine);
   } else if (extension === '.ts' || extension === '.tsx' || extension === '.js' || extension === '.jsx') {
     addTypeScriptEntries(
       entries,
       relativePath,
+      lineText,
       fullText,
       fileName,
       extension,
@@ -72,13 +74,13 @@ function buildReferencesText(editor: vscode.TextEditor): string | null {
       normalizedSelectionStart,
     );
   } else if (extension === '.html' || extension === '.htm') {
-    addHtmlEntries(entries, relativePath, fullText, startLine, normalizedSelectionStart);
+    addHtmlEntries(entries, relativePath, lineText, fullText, normalizedSelectionStart);
   }
 
   if (entries.length === 0) {
     entries.push({
       relativePath,
-      line: startLine + 1,
+      lineText,
       label: null,
     });
   }
@@ -91,8 +93,8 @@ function formatEntries(entries: ReferenceEntry[]): string {
   const seen = new Set<string>();
 
   for (const entry of entries) {
-    const labelSuffix = entry.label ? ` [${entry.label}]` : '';
-    const line = `${entry.relativePath}:${entry.line}${labelSuffix}`;
+    const labelSuffix = entry.label ? ` ${entry.label}` : '';
+    const line = `${entry.relativePath}:${entry.lineText}${labelSuffix}`;
     if (seen.has(line)) {
       continue;
     }
@@ -103,17 +105,30 @@ function formatEntries(entries: ReferenceEntry[]): string {
   return lines.join('\n');
 }
 
+function getSelectionLineRange(selection: vscode.Selection): { startLine: number; endLine: number } {
+  if (selection.isEmpty) {
+    return { startLine: selection.active.line, endLine: selection.active.line };
+  }
+
+  const startLine = selection.start.line;
+  let endLine = selection.end.line;
+  if (selection.end.character === 0 && endLine > startLine) {
+    endLine -= 1;
+  }
+  return { startLine, endLine };
+}
+
 function addHtmlEntries(
   entries: ReferenceEntry[],
   relativePath: string,
+  lineText: string,
   fullText: string,
-  cursorLine: number,
   focusPos: number,
 ) {
   const tagName = findEnclosingHtmlTagName(fullText, focusPos);
   entries.push({
     relativePath,
-    line: cursorLine + 1,
+    lineText,
     label: tagName,
   });
 }
@@ -159,6 +174,7 @@ type PythonBlock = {
 function addPythonEntries(
   entries: ReferenceEntry[],
   relativePath: string,
+  lineText: string,
   fullText: string,
   selectionText: string,
   selectionStartLine: number,
@@ -173,7 +189,7 @@ function addPythonEntries(
     if (block.startLine >= selectionStartLine && block.startLine <= selectionEndLine) {
       entries.push({
         relativePath,
-        line: block.startLine + 1,
+        lineText,
         label: block.label,
       });
     }
@@ -187,7 +203,7 @@ function addPythonEntries(
   if (selectionLabel) {
     entries.push({
       relativePath,
-      line: cursorLine + 1,
+      lineText,
       label: selectionLabel,
     });
     return;
@@ -196,7 +212,7 @@ function addPythonEntries(
   const enclosing = findEnclosingPythonDef(blocks, cursorLine);
   entries.push({
     relativePath,
-    line: cursorLine + 1,
+    lineText,
     label: enclosing ? enclosing.label : null,
   });
 }
@@ -328,6 +344,7 @@ function findPythonSelectionLabel(selectionText: string): string | null {
 function addTypeScriptEntries(
   entries: ReferenceEntry[],
   relativePath: string,
+  lineText: string,
   fullText: string,
   fileName: string,
   extension: string,
@@ -347,6 +364,7 @@ function addTypeScriptEntries(
     enclosingCandidate: null,
     enclosingCandidateWidth: Number.POSITIVE_INFINITY,
     relativePath,
+    lineText,
   };
 
   currentTsTraversalState = state;
@@ -365,10 +383,9 @@ function addTypeScriptEntries(
     const label = findEnclosingTypeScriptLabel(state.enclosingCandidate, state);
     entries.push({
       relativePath,
-      line: getTypeScriptLineNumber(state.enclosingCandidate, state.sourceFile),
+      lineText,
       label,
     });
-    return;
   }
 }
 
@@ -422,7 +439,7 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
   if (ts.isFunctionDeclaration(node) && node.name) {
     return {
       relativePath: state.relativePath,
-      line: getTypeScriptLineNumber(node, state.sourceFile),
+      lineText: state.lineText,
       label: node.name.text,
     };
   }
@@ -431,7 +448,7 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     if (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) {
       return {
         relativePath: state.relativePath,
-        line: getTypeScriptLineNumber(node, state.sourceFile),
+        lineText: state.lineText,
         label: node.name.text,
       };
     }
@@ -444,7 +461,7 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     }
     return {
       relativePath: state.relativePath,
-      line: getTypeScriptLineNumber(node, state.sourceFile),
+      lineText: state.lineText,
       label,
     };
   }
@@ -456,7 +473,7 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     }
     return {
       relativePath: state.relativePath,
-      line: getTypeScriptLineNumber(node, state.sourceFile),
+      lineText: state.lineText,
       label,
     };
   }
@@ -468,7 +485,7 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     }
     return {
       relativePath: state.relativePath,
-      line: getTypeScriptLineNumber(node, state.sourceFile),
+      lineText: state.lineText,
       label,
     };
   }
@@ -567,16 +584,10 @@ function getTypeScriptObjectLiteralOwnerName(
   return null;
 }
 
-function getTypeScriptLineNumber(node: ts.Node, sourceFile: ts.SourceFile): number {
-  const start = node.getStart(sourceFile);
-  const { line } = sourceFile.getLineAndCharacterOfPosition(start);
-  return line + 1;
-}
-
 function addUniqueEntry(entries: ReferenceEntry[], entry: ReferenceEntry) {
-  const key = `${entry.relativePath}:${entry.line}:${entry.label ?? ''}`;
+  const key = `${entry.relativePath}:${entry.lineText}:${entry.label ?? ''}`;
   for (const existing of entries) {
-    const existingKey = `${existing.relativePath}:${existing.line}:${existing.label ?? ''}`;
+    const existingKey = `${existing.relativePath}:${existing.lineText}:${existing.label ?? ''}`;
     if (existingKey === key) {
       return;
     }

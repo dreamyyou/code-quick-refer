@@ -98,7 +98,7 @@ pnpm run test
 To build a `.vsix`:
 
 ```bash
-npx @vscode/vsce package
+pnpm run package:vsix
 ```
 
 The generated `.vsix` is placed in the project root (e.g. `code-quick-refer-0.0.2.vsix`).

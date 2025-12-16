@@ -2,9 +2,14 @@
   "name": "code-quick-refer",
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
-  "version": "0.0.2",
+  "publisher": "wikichen",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dreamyyou/code-quick-refer.git"
+  },
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.106.0"
   },
   "categories": [
     "Other"
@@ -50,6 +55,7 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "package:vsix": "pnpm dlx @vscode/vsce package",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
@@ -58,7 +64,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.107.0",
+    "@types/vscode": "^1.106.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "typescript-eslint": "^8.48.1",
