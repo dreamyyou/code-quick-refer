@@ -61,6 +61,20 @@ templates/index.html:1 [div]
 - Node.js (recommended: 22) + `pnpm`
 - Python 3.12 + `uv`
 
+### Install & Test (Run Extension)
+
+```bash
+pnpm install
+pnpm run compile
+```
+
+Press `F5` in VS Code to launch **Extension Development Host**, then in the new window:
+
+- Open any project/workspace
+- Select code in an editor
+- Right click `Generate References` (or press `alt+d`)
+- The result is copied to clipboard
+
 ### Install & Pre-commit
 
 ```bash
@@ -76,6 +90,18 @@ pnpm run check-types
 pnpm run compile
 pnpm run test
 ```
+
+### Package VSIX (Optional)
+
+`pnpm run package` only builds `dist/extension.js` (it does not produce a `.vsix`).
+
+To build a `.vsix`:
+
+```bash
+npx @vscode/vsce package
+```
+
+The generated `.vsix` is placed in the project root (e.g. `code-quick-refer-0.0.2.vsix`).
 
 ## Custom ESLint Rules
 
