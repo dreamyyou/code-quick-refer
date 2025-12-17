@@ -183,6 +183,19 @@ function addPythonEntries(
 ) {
   const blocks = parsePythonBlocks(fullText);
   for (const block of blocks) {
+    if (block.type !== 'class') {
+      continue;
+    }
+    if (block.startLine >= selectionStartLine && block.startLine <= selectionEndLine) {
+      entries.push({
+        relativePath,
+        lineText,
+        label: block.label,
+      });
+    }
+  }
+
+  for (const block of blocks) {
     if (block.type !== 'def') {
       continue;
     }
@@ -210,6 +223,16 @@ function addPythonEntries(
   }
 
   const enclosing = findEnclosingPythonDef(blocks, cursorLine);
+  if (!enclosing) {
+    const enclosingClass = findEnclosingPythonClass(blocks, cursorLine);
+    entries.push({
+      relativePath,
+      lineText,
+      label: enclosingClass ? enclosingClass.label : null,
+    });
+    return;
+  }
+
   entries.push({
     relativePath,
     lineText,
@@ -334,11 +357,51 @@ function findPythonSelectionLabel(selectionText: string): string | null {
     return null;
   }
 
-  const match = /^([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)$/.exec(trimmed);
-  if (!match || !match[1]) {
+  const normalized = normalizePythonSelectionText(trimmed);
+
+  const dottedMatch = /^([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)$/.exec(normalized);
+  if (dottedMatch && dottedMatch[1]) {
+    return dottedMatch[1];
+  }
+
+  const classMatch = /^class\s+([A-Za-z_]\w*)\b/.exec(normalized);
+  if (classMatch && classMatch[1]) {
+    return classMatch[1];
+  }
+
+  const identifierMatch = /^([A-Za-z_]\w*)$/.exec(normalized);
+  if (!identifierMatch || !identifierMatch[1]) {
     return null;
   }
-  return match[1];
+  return identifierMatch[1];
+}
+
+function normalizePythonSelectionText(selectionText: string): string {
+  return selectionText
+    .replace(/\\\s*\r?\n\s*/g, '')
+    .replace(/\s*\.\s*/g, '.')
+    .trim();
+}
+
+function findEnclosingPythonClass(blocks: PythonBlock[], cursorLine: number): PythonBlock | null {
+  let best: PythonBlock | null = null;
+  let bestWidth = Number.POSITIVE_INFINITY;
+
+  for (const block of blocks) {
+    if (block.type !== 'class') {
+      continue;
+    }
+    if (cursorLine < block.startLine || cursorLine > block.endLine) {
+      continue;
+    }
+    const width = block.endLine - block.startLine;
+    if (width < bestWidth) {
+      best = block;
+      bestWidth = width;
+    }
+  }
+
+  return best;
 }
 
 function addTypeScriptEntries(

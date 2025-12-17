@@ -2,6 +2,9 @@
 
 Generate “AI-friendly” code references from your current selection and copy them to clipboard.
 
+- English: this README
+- 简体中文：`README_zh.md`
+
 ## Usage
 
 - Editor context menu: `Generate References`
@@ -13,19 +16,19 @@ After running, references are copied to clipboard.
 ## Reference Format
 
 ```
-{relative/path/to/file}:{line} [{functionOrObjectName}]
+{relative/path/to/file}:{lineOrRange} {functionOrObjectName}
 ```
 
 - `{relative/path/to/file}`: workspace-relative path
-- `{line}`: 1-based line number (selection start / cursor line)
-- `[{functionOrObjectName}]`: only generated for `Python (.py)`, `TypeScript/JavaScript (.ts/.tsx/.js/.jsx)`, `HTML (.html/.htm)`
+- `{lineOrRange}`: 1-based line number, or `start-end` for multi-line selection
+- `{functionOrObjectName}`: only generated for `Python (.py)`, `TypeScript/JavaScript (.ts/.tsx/.js/.jsx)`, `HTML (.html/.htm)`; omitted when not available
 
 ### Examples
 
 ```
-src/extension.ts:12 [activate]
-src/references.ts:210 [MyClass.myMethod]
-templates/index.html:1 [div]
+src/extension.ts:12 activate
+src/references.ts:210-260 MyClass.myMethod
+templates/index.html:1 div
 ```
 
 ## How Names Are Detected
@@ -42,26 +45,20 @@ templates/index.html:1 [div]
 
 ### Python
 
-- Multiple `def` within the selection may produce multiple lines.
+- Multiple `class`/`def` within the selection may produce multiple lines.
 - Supports:
   - top-level functions: `def foo(...):` → `foo`
   - class methods: `class A: def m(...):` → `A.m`
-- If no `def` is found inside selection:
-  - when selection is an identifier chain like `obj.method`, returns `obj.method`
-  - otherwise falls back to the enclosing `def` at cursor (best-effort)
+  - selected identifier / attribute chain (best-effort): `obj` / `obj.method` / `obj.\nmethod`
+- If nothing is recognized inside selection, it falls back to the enclosing `def`, then enclosing `class` at cursor (best-effort).
 
 ### HTML
 
 - Best-effort: returns the nearest preceding opening tag name at cursor (e.g. `div`, `button`).
 
-## Development
+## Install & Test
 
-### Prerequisites
-
-- Node.js (recommended: 22) + `pnpm`
-- Python 3.12 + `uv`
-
-### Install & Test (Run Extension)
+### Run Extension (Development Host)
 
 ```bash
 pnpm install
@@ -74,6 +71,33 @@ Press `F5` in VS Code to launch **Extension Development Host**, then in the new 
 - Select code in an editor
 - Right click `Generate References` (or press `alt+d`)
 - The result is copied to clipboard
+
+### Package VSIX (Optional)
+
+`pnpm run package` only builds `dist/extension.js` (it does not produce a `.vsix`).
+
+To build a `.vsix`:
+
+```bash
+pnpm run package:vsix
+```
+
+The generated `.vsix` is placed in the project root (e.g. `code-quick-refer-0.0.3.vsix`).
+
+### Install VSIX in VS Code
+
+- Open VS Code
+- Open Command Palette: `⇧⌘P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
+- Run: `Extensions: Install from VSIX...`
+- Select the generated `.vsix` file and confirm
+- Reload VS Code when prompted
+
+## Development
+
+### Prerequisites
+
+- Node.js (recommended: 22) + `pnpm`
+- Python 3.12 + `uv`
 
 ### Install & Pre-commit
 
@@ -91,18 +115,6 @@ pnpm run compile
 pnpm run test
 ```
 
-### Package VSIX (Optional)
-
-`pnpm run package` only builds `dist/extension.js` (it does not produce a `.vsix`).
-
-To build a `.vsix`:
-
-```bash
-pnpm run package:vsix
-```
-
-The generated `.vsix` is placed in the project root (e.g. `code-quick-refer-0.0.2.vsix`).
-
 ## Custom ESLint Rules
 
 - Custom rules live in `rule/custom-rules.cjs`
@@ -114,5 +126,5 @@ None.
 
 ## Known Limitations
 
-- Name detection is heuristic (especially for Python and HTML); when in doubt it still returns `{path}:{line}`.
+- Name detection is heuristic (especially for Python and HTML); when in doubt it still returns `{path}:{lineOrRange}`.
 - Only the active editor selection is used.
