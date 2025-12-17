@@ -276,7 +276,7 @@ function parsePythonBlocks(fullText: string): PythonBlock[] {
       continue;
     }
 
-    const defMatch = /^def\s+([A-Za-z_]\w*)\s*\(/.exec(trimmed);
+    const defMatch = /^(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/.exec(trimmed);
     if (defMatch && defMatch[1]) {
       const defName = defMatch[1];
       const parentClass = findNearestPythonClass(stack);
