@@ -3,7 +3,7 @@
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
   "publisher": "wikichen",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/dreamyyou/code-quick-refer.git"
@@ -14,10 +14,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:code-quick-refer.helloWorld",
-    "onCommand:code-quick-refer.generateReferences"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -27,7 +23,11 @@
       },
       {
         "command": "code-quick-refer.generateReferences",
-        "title": "Generate References"
+        "title": "复制对象引用"
+      },
+      {
+        "command": "code-quick-refer.copyLineNumber",
+        "title": "复制行号"
       }
     ],
     "menus": {
@@ -36,6 +36,11 @@
           "command": "code-quick-refer.generateReferences",
           "when": "editorTextFocus",
           "group": "navigation@10"
+        },
+        {
+          "command": "code-quick-refer.copyLineNumber",
+          "when": "editorTextFocus",
+          "group": "navigation@11"
         }
       ]
     },

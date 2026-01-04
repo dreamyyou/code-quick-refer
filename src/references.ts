@@ -39,6 +39,24 @@ export async function generateReferencesCommand() {
   vscode.window.showInformationMessage('References copied to clipboard.');
 }
 
+export async function copyLineNumberCommand() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage('No active editor.');
+    return;
+  }
+
+  const document = editor.document;
+  const selection = editor.selection;
+  const relativePath = vscode.workspace.asRelativePath(document.uri, false);
+  const { startLine, endLine } = getSelectionLineRange(selection);
+  const lineText = startLine === endLine ? `${startLine + 1}` : `${startLine + 1}-${endLine + 1}`;
+  const result = `${relativePath}:${lineText}`;
+
+  await vscode.env.clipboard.writeText(result);
+  vscode.window.showInformationMessage('Line number copied to clipboard.');
+}
+
 function buildReferencesText(editor: vscode.TextEditor): string | null {
   const document = editor.document;
   const selection = editor.selection;
@@ -507,14 +525,34 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     };
   }
 
-  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-    if (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) {
-      return {
-        relativePath: state.relativePath,
-        lineText: state.lineText,
-        label: node.name.text,
-      };
+  if (ts.isClassDeclaration(node) && node.name) {
+    return {
+      relativePath: state.relativePath,
+      lineText: state.lineText,
+      label: node.name.text,
+    };
+  }
+
+  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+    if (node.initializer) {
+      if (
+        ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer) ||
+        ts.isObjectLiteralExpression(node.initializer) ||
+        ts.isClassExpression(node.initializer)
+      ) {
+        return {
+          relativePath: state.relativePath,
+          lineText: state.lineText,
+          label: node.name.text,
+        };
+      }
     }
+    return {
+      relativePath: state.relativePath,
+      lineText: state.lineText,
+      label: node.name.text,
+    };
   }
 
   if (ts.isMethodDeclaration(node)) {
@@ -553,6 +591,74 @@ function getTypeScriptEntryFromNode(node: ts.Node, state: TsTraversalState): Ref
     };
   }
 
+  if (ts.isMethodSignature(node) || ts.isPropertySignature(node)) {
+    const label = getTypeScriptInterfaceMemberLabel(node, state);
+    if (label) {
+      return {
+        relativePath: state.relativePath,
+        lineText: state.lineText,
+        label,
+      };
+    }
+  }
+
+  if (ts.isInterfaceDeclaration(node) && node.name) {
+    return {
+      relativePath: state.relativePath,
+      lineText: state.lineText,
+      label: node.name.text,
+    };
+  }
+
+  if (ts.isTypeAliasDeclaration(node) && node.name) {
+    return {
+      relativePath: state.relativePath,
+      lineText: state.lineText,
+      label: node.name.text,
+    };
+  }
+
+  if (ts.isEnumDeclaration(node) && node.name) {
+    return {
+      relativePath: state.relativePath,
+      lineText: state.lineText,
+      label: node.name.text,
+    };
+  }
+
+  if (ts.isEnumMember(node)) {
+    const label = getTypeScriptEnumMemberLabel(node, state);
+    if (label) {
+      return {
+        relativePath: state.relativePath,
+        lineText: state.lineText,
+        label,
+      };
+    }
+  }
+
+  if (ts.isGetAccessor(node) || ts.isSetAccessor(node)) {
+    const label = getTypeScriptMemberLabel(node, state);
+    if (label) {
+      return {
+        relativePath: state.relativePath,
+        lineText: state.lineText,
+        label,
+      };
+    }
+  }
+
+  if (ts.isConstructorDeclaration(node)) {
+    const parent = node.parent;
+    if (ts.isClassLike(parent) && parent.name) {
+      return {
+        relativePath: state.relativePath,
+        lineText: state.lineText,
+        label: `${parent.name.text}.constructor`,
+      };
+    }
+  }
+
   return null;
 }
 
@@ -575,7 +681,7 @@ function getTypeScriptPropertyAssignmentLabel(node: ts.PropertyAssignment, state
 }
 
 function getTypeScriptMemberLabel(
-  node: ts.MethodDeclaration | ts.PropertyDeclaration,
+  node: ts.MethodDeclaration | ts.PropertyDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
   state: TsTraversalState,
 ): string | null {
   if (!node.name) {
@@ -601,6 +707,49 @@ function getTypeScriptMemberLabel(
       return `${ownerName}.${memberName}`;
     }
     return memberName;
+  }
+
+  return memberName;
+}
+
+function getTypeScriptInterfaceMemberLabel(
+  node: ts.MethodSignature | ts.PropertySignature,
+  state: TsTraversalState,
+): string | null {
+  if (!node.name) {
+    return null;
+  }
+  const memberName = getTypeScriptPropertyNameText(node.name, state.sourceFile);
+  if (!memberName) {
+    return null;
+  }
+
+  const parent = node.parent;
+  if (ts.isInterfaceDeclaration(parent) && parent.name) {
+    return `${parent.name.text}.${memberName}`;
+  }
+  if (ts.isTypeLiteralNode(parent)) {
+    const typeParent = parent.parent;
+    if (ts.isTypeAliasDeclaration(typeParent) && typeParent.name) {
+      return `${typeParent.name.text}.${memberName}`;
+    }
+  }
+
+  return memberName;
+}
+
+function getTypeScriptEnumMemberLabel(node: ts.EnumMember, state: TsTraversalState): string | null {
+  if (!node.name) {
+    return null;
+  }
+  const memberName = getTypeScriptPropertyNameText(node.name, state.sourceFile);
+  if (!memberName) {
+    return null;
+  }
+
+  const parent = node.parent;
+  if (ts.isEnumDeclaration(parent) && parent.name) {
+    return `${parent.name.text}.${memberName}`;
   }
 
   return memberName;
