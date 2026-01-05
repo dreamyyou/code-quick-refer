@@ -107,17 +107,32 @@ function buildReferencesText(editor: vscode.TextEditor): string | null {
 }
 
 function formatEntries(entries: ReferenceEntry[]): string {
-  const lines: string[] = [];
-  const seen = new Set<string>();
+  // Group entries by relativePath:lineText
+  const groupMap = new Map<string, string[]>();
+  const groupOrder: string[] = [];
 
   for (const entry of entries) {
-    const labelSuffix = entry.label ? ` ${entry.label}` : '';
-    const line = `${entry.relativePath}:${entry.lineText}${labelSuffix}`;
-    if (seen.has(line)) {
-      continue;
+    const key = `${entry.relativePath}:${entry.lineText}`;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, []);
+      groupOrder.push(key);
     }
-    seen.add(line);
-    lines.push(line);
+    if (entry.label) {
+      const labels = groupMap.get(key)!;
+      if (!labels.includes(entry.label)) {
+        labels.push(entry.label);
+      }
+    }
+  }
+
+  const lines: string[] = [];
+  for (const key of groupOrder) {
+    const labels = groupMap.get(key)!;
+    if (labels.length > 0) {
+      lines.push(`${key} ${labels.join(', ')}`);
+    } else {
+      lines.push(key);
+    }
   }
 
   return lines.join('\n');
