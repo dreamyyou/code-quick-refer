@@ -37,23 +37,25 @@ export async function formatHtmlCommand(): Promise<void> {
     return;
   }
 
+  const document = editor.document;
   const selection = editor.selection;
-  if (selection.isEmpty) {
-    vscode.window.showInformationMessage('Please select HTML content to format.');
-    return;
-  }
 
-  const selectedText = editor.document.getText(selection);
-  const formatted = formatHtml(selectedText);
+  // 如果没有选中内容，格式化整个文件
+  const range = selection.isEmpty
+    ? new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length))
+    : selection;
 
-  await editor.edit(createReplaceCallback(selection, formatted));
+  const text = document.getText(range);
+  const formatted = formatHtml(text);
+
+  await editor.edit(createReplaceCallback(range, formatted));
 
   vscode.window.showInformationMessage('HTML formatted.');
 }
 
-function createReplaceCallback(selection: vscode.Selection, formatted: string): EditCallback {
+function createReplaceCallback(range: vscode.Range, formatted: string): EditCallback {
   return (editBuilder: vscode.TextEditorEdit) => {
-    editBuilder.replace(selection, formatted);
+    editBuilder.replace(range, formatted);
   };
 }
 
