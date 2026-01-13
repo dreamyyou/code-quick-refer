@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { generateReferencesCommand, copyLineNumberCommand } from './references';
+import { formatHtmlCommand } from './htmlFormatter';
 
 function showHelloWorldMessage() {
   vscode.window.showInformationMessage('Hello World from code-quick-refer!');
@@ -26,10 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
     'code-quick-refer.copyLineNumber',
     copyLineNumberCommand,
   );
+  const formatHtmlDisposable = vscode.commands.registerCommand('code-quick-refer.formatHtml', formatHtmlCommand);
 
   context.subscriptions.push(disposable);
   context.subscriptions.push(generateReferencesDisposable);
   context.subscriptions.push(copyLineNumberDisposable);
+  context.subscriptions.push(formatHtmlDisposable);
 }
 
 // This method is called when your extension is deactivated
