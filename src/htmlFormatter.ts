@@ -125,8 +125,14 @@ function tokenize(html: string): Token[] {
         pos += match[0].length;
         continue;
       }
+
+      // 无法识别的 < 字符，当作文本处理并前进
+      tokens.push({ type: 'text', content: '<' });
+      pos++;
+      continue;
     }
 
+    // 处理普通文本
     let nextTagIndex = html.indexOf('<', pos);
     if (nextTagIndex === -1) {
       nextTagIndex = html.length;
