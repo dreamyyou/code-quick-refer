@@ -20,12 +20,15 @@ const VOID_ELEMENTS = new Set([
   'wbr',
 ]);
 
+const RAW_TEXT_ELEMENTS = new Set(['style', 'script']);
+
 type Token =
   | { type: 'startTag'; tagName: string; attributes: string; selfClosing: boolean }
   | { type: 'endTag'; tagName: string }
   | { type: 'text'; content: string }
   | { type: 'comment'; content: string }
-  | { type: 'doctype'; content: string };
+  | { type: 'doctype'; content: string }
+  | { type: 'rawText'; tagName: string; attributes: string; content: string };
 
 export async function formatHtmlCommand(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
@@ -105,6 +108,19 @@ function tokenize(html: string): Token[] {
         const tagName = match[1].toLowerCase();
         const attributes = normalizeAttributes(match[2]);
         const selfClosing = match[3] === '/' || VOID_ELEMENTS.has(tagName);
+
+        if (RAW_TEXT_ELEMENTS.has(tagName) && !selfClosing) {
+          const endTagPattern = new RegExp(`</${tagName}\\s*>`, 'i');
+          const remaining = html.slice(pos + match[0].length);
+          const endMatch = endTagPattern.exec(remaining);
+          if (endMatch) {
+            const rawContent = remaining.slice(0, endMatch.index);
+            tokens.push({ type: 'rawText', tagName, attributes, content: rawContent });
+            pos += match[0].length + endMatch.index + endMatch[0].length;
+            continue;
+          }
+        }
+
         tokens.push({ type: 'startTag', tagName, attributes, selfClosing });
         pos += match[0].length;
         continue;
@@ -139,6 +155,12 @@ function render(tokens: Token[]): string {
 
     if (token.type === 'comment') {
       lines.push(INDENT.repeat(depth) + token.content);
+      continue;
+    }
+
+    if (token.type === 'rawText') {
+      const startTag = token.attributes ? `<${token.tagName} ${token.attributes}>` : `<${token.tagName}>`;
+      lines.push(INDENT.repeat(depth) + startTag + token.content + `</${token.tagName}>`);
       continue;
     }
 
