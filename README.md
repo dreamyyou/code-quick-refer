@@ -7,11 +7,27 @@ Generate “AI-friendly” code references from your current selection and copy 
 
 ## Usage
 
+### Generate References
+
 - Editor context menu: `Generate References`
 - Command palette: `Generate References`
 - Default shortcut: `alt+d` (macOS)
 
 After running, references are copied to clipboard.
+
+### Open with System Default
+
+Right-click a file in Explorer → `Open with System Default`
+
+Opens the file with the system's default application (macOS `open` command).
+
+### Folder Favorites
+
+Right-click a folder in Explorer → `Add to Activity Bar`
+
+- 5 fixed slots in the Activity Bar for your favorite folders
+- Click the folder icon to jump to that folder in Explorer
+- Click the trash icon in the view title to remove from favorites
 
 ## Reference Format
 

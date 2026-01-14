@@ -12,6 +12,7 @@ interface FavoriteSlot {
 type FavoritesData = (FavoriteSlot | null)[];
 type AddFavoriteHandler = (uri: vscode.Uri) => void;
 type RemoveFavoriteHandler = () => void;
+type ManageFavoritesHandler = () => Promise<void>;
 type SlotPredicate = (slot: FavoriteSlot | null) => boolean;
 type VisibilityChangeHandler = (e: vscode.TreeViewVisibilityChangeEvent) => void;
 
@@ -123,6 +124,17 @@ export class FavoritesManager {
     }
     return -1;
   }
+
+  getFilledSlots(): Array<{ slot: FavoriteSlot; index: number }> {
+    const result: Array<{ slot: FavoriteSlot; index: number }> = [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const slot = this.slots[i];
+      if (slot) {
+        result.push({ slot, index: i });
+      }
+    }
+    return result;
+  }
 }
 
 export class FavoriteSlotProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -192,6 +204,44 @@ export function createRemoveFavoriteCommand(
   return removeFavoriteHandler.bind(null, manager, treeViews);
 }
 
+interface QuickPickSlotItem extends vscode.QuickPickItem {
+  slotIndex: number;
+}
+
+function createQuickPickSlotItem(slot: FavoriteSlot, index: number): QuickPickSlotItem {
+  return {
+    label: `$(folder) ${slot.name}`,
+    description: slot.path,
+    slotIndex: index,
+  };
+}
+
+async function manageFavoritesHandler(manager: FavoritesManager): Promise<void> {
+  const filledSlots = manager.getFilledSlots();
+  if (filledSlots.length === 0) {
+    vscode.window.showInformationMessage('活动栏没有收藏的文件夹');
+    return;
+  }
+
+  const quickPickItems: QuickPickSlotItem[] = [];
+  for (const { slot, index } of filledSlots) {
+    quickPickItems.push(createQuickPickSlotItem(slot, index));
+  }
+
+  const selected = await vscode.window.showQuickPick(quickPickItems, {
+    placeHolder: '选择要移除的文件夹',
+    title: '管理活动栏收藏',
+  });
+
+  if (selected) {
+    manager.removeFavorite(selected.slotIndex);
+  }
+}
+
+export function createManageFavoritesCommand(manager: FavoritesManager): ManageFavoritesHandler {
+  return manageFavoritesHandler.bind(null, manager);
+}
+
 export function revealFolderCommand(folderPath: string): void {
   const uri = vscode.Uri.file(folderPath);
   vscode.commands.executeCommand('revealInExplorer', uri);
@@ -242,6 +292,9 @@ export function initializeFavorites(context: vscode.ExtensionContext): vscode.Di
     vscode.commands.registerCommand('code-quick-refer.removeFavorite', createRemoveFavoriteCommand(manager, treeViews)),
   );
   disposables.push(vscode.commands.registerCommand('code-quick-refer.revealFolder', revealFolderCommand));
+  disposables.push(
+    vscode.commands.registerCommand('code-quick-refer.manageFavorites', createManageFavoritesCommand(manager)),
+  );
 
   return disposables;
 }

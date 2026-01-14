@@ -3,7 +3,7 @@
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
   "publisher": "wikichen",
-  "version": "0.0.18",
+  "version": "0.0.21",
   "repository": {
     "type": "git",
     "url": "https://github.com/dreamyyou/code-quick-refer.git"
@@ -106,6 +106,18 @@
         "command": "code-quick-refer.removeFavorite",
         "title": "从收藏夹移除",
         "icon": "$(trash)"
+      },
+      {
+        "command": "code-quick-refer.addStatusBarFavorite",
+        "title": "收藏到底部状态栏"
+      },
+      {
+        "command": "code-quick-refer.manageStatusBarFavorites",
+        "title": "管理状态栏收藏"
+      },
+      {
+        "command": "code-quick-refer.manageFavorites",
+        "title": "管理活动栏收藏"
       }
     ],
     "menus": {
@@ -136,6 +148,11 @@
           "command": "code-quick-refer.addFavorite",
           "when": "explorerResourceIsFolder",
           "group": "navigation@50"
+        },
+        {
+          "command": "code-quick-refer.addStatusBarFavorite",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation@51"
         }
       ],
       "view/title": [
