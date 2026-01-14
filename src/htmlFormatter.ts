@@ -21,6 +21,7 @@ const VOID_ELEMENTS = new Set([
 ]);
 
 const RAW_TEXT_ELEMENTS = new Set(['style', 'script']);
+const PRESERVE_WHITESPACE_ELEMENTS = new Set(['pre', 'code', 'textarea']);
 
 type Token =
   | { type: 'startTag'; tagName: string; attributes: string; selfClosing: boolean }
@@ -149,9 +150,18 @@ function tokenize(html: string): Token[] {
   return tokens;
 }
 
+function escapeNewlines(text: string): string {
+  return text.replace(/\n/g, '&#10;').replace(/\r/g, '&#13;');
+}
+
+function isPreserveWhitespaceElement(tag: string): boolean {
+  return PRESERVE_WHITESPACE_ELEMENTS.has(tag);
+}
+
 function render(tokens: Token[]): string {
   const lines: string[] = [];
   let depth = 0;
+  const tagStack: string[] = [];
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
@@ -194,19 +204,23 @@ function render(tokens: Token[]): string {
       ) {
         const textContent = nextToken.content.trim();
         if (textContent.length > 0 && !textContent.includes('\n')) {
-          lines.push(INDENT.repeat(depth) + tagStr + textContent + `</${token.tagName}>`);
+          const inPreserve = PRESERVE_WHITESPACE_ELEMENTS.has(token.tagName);
+          const processedInline = inPreserve ? textContent : escapeNewlines(textContent);
+          lines.push(INDENT.repeat(depth) + tagStr + processedInline + `</${token.tagName}>`);
           i += 2;
           continue;
         }
       }
 
       lines.push(INDENT.repeat(depth) + tagStr);
+      tagStack.push(token.tagName);
       depth++;
       continue;
     }
 
     if (token.type === 'endTag') {
       depth = Math.max(0, depth - 1);
+      tagStack.pop();
       lines.push(INDENT.repeat(depth) + `</${token.tagName}>`);
       continue;
     }
@@ -214,7 +228,10 @@ function render(tokens: Token[]): string {
     if (token.type === 'text') {
       const trimmed = token.content.trim();
       if (trimmed.length > 0) {
-        lines.push(INDENT.repeat(depth) + trimmed);
+        // 检查是否在需要保留空白的元素内
+        const inPreserveElement = tagStack.some(isPreserveWhitespaceElement);
+        const processedText = inPreserveElement ? trimmed : escapeNewlines(trimmed);
+        lines.push(INDENT.repeat(depth) + processedText);
       }
     }
   }
