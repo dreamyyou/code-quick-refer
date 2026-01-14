@@ -1,11 +1,26 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { spawn } from 'child_process';
 import { generateReferencesCommand, copyLineNumberCommand } from './references';
 import { formatHtmlCommand } from './htmlFormatter';
 
 function showHelloWorldMessage() {
   vscode.window.showInformationMessage('Hello World from code-quick-refer!');
+}
+
+function handleOpenError(error: Error) {
+  vscode.window.showErrorMessage(`打开文件失败: ${error.message}`);
+}
+
+function openWithSystemCommand(uri: vscode.Uri) {
+  if (!uri) {
+    vscode.window.showErrorMessage('未选择文件');
+    return;
+  }
+  const filePath = uri.fsPath;
+  const child = spawn('open', [filePath]);
+  child.on('error', handleOpenError);
 }
 
 // This method is called when your extension is activated
@@ -28,11 +43,16 @@ export function activate(context: vscode.ExtensionContext) {
     copyLineNumberCommand,
   );
   const formatHtmlDisposable = vscode.commands.registerCommand('code-quick-refer.formatHtml', formatHtmlCommand);
+  const openWithSystemDisposable = vscode.commands.registerCommand(
+    'code-quick-refer.openWithSystem',
+    openWithSystemCommand,
+  );
 
   context.subscriptions.push(disposable);
   context.subscriptions.push(generateReferencesDisposable);
   context.subscriptions.push(copyLineNumberDisposable);
   context.subscriptions.push(formatHtmlDisposable);
+  context.subscriptions.push(openWithSystemDisposable);
 }
 
 // This method is called when your extension is deactivated

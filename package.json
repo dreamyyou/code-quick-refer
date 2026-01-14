@@ -3,7 +3,7 @@
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
   "publisher": "wikichen",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "repository": {
     "type": "git",
     "url": "https://github.com/dreamyyou/code-quick-refer.git"
@@ -32,6 +32,10 @@
       {
         "command": "code-quick-refer.formatHtml",
         "title": "HTML 格式化"
+      },
+      {
+        "command": "code-quick-refer.openWithSystem",
+        "title": "使用系统默认工具打开"
       }
     ],
     "menus": {
@@ -50,6 +54,13 @@
           "command": "code-quick-refer.formatHtml",
           "when": "editorTextFocus && editorLangId == html",
           "group": "navigation@12"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "code-quick-refer.openWithSystem",
+          "when": "!explorerResourceIsFolder",
+          "group": "navigation@99"
         }
       ]
     },
