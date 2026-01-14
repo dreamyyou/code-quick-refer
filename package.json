@@ -3,7 +3,7 @@
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
   "publisher": "wikichen",
-  "version": "0.0.14",
+  "version": "0.0.18",
   "repository": {
     "type": "git",
     "url": "https://github.com/dreamyyou/code-quick-refer.git"
@@ -16,6 +16,67 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "favoriteContainer0",
+          "title": "收藏 1",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "favoriteContainer1",
+          "title": "收藏 2",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "favoriteContainer2",
+          "title": "收藏 3",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "favoriteContainer3",
+          "title": "收藏 4",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "favoriteContainer4",
+          "title": "收藏 5",
+          "icon": "$(folder)"
+        }
+      ]
+    },
+    "views": {
+      "favoriteContainer0": [
+        {
+          "id": "favoriteSlot0",
+          "name": "收藏 1"
+        }
+      ],
+      "favoriteContainer1": [
+        {
+          "id": "favoriteSlot1",
+          "name": "收藏 2"
+        }
+      ],
+      "favoriteContainer2": [
+        {
+          "id": "favoriteSlot2",
+          "name": "收藏 3"
+        }
+      ],
+      "favoriteContainer3": [
+        {
+          "id": "favoriteSlot3",
+          "name": "收藏 4"
+        }
+      ],
+      "favoriteContainer4": [
+        {
+          "id": "favoriteSlot4",
+          "name": "收藏 5"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "code-quick-refer.helloWorld",
@@ -36,6 +97,15 @@
       {
         "command": "code-quick-refer.openWithSystem",
         "title": "使用系统默认工具打开"
+      },
+      {
+        "command": "code-quick-refer.addFavorite",
+        "title": "收藏到侧边活动栏"
+      },
+      {
+        "command": "code-quick-refer.removeFavorite",
+        "title": "从收藏夹移除",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -61,6 +131,18 @@
           "command": "code-quick-refer.openWithSystem",
           "when": "!explorerResourceIsFolder",
           "group": "navigation@99"
+        },
+        {
+          "command": "code-quick-refer.addFavorite",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation@50"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "code-quick-refer.removeFavorite",
+          "when": "view =~ /favoriteSlot/",
+          "group": "navigation"
         }
       ]
     },

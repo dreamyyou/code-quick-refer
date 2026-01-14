@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { generateReferencesCommand, copyLineNumberCommand } from './references';
 import { formatHtmlCommand } from './htmlFormatter';
+import { initializeFavorites } from './folderFavorites';
 
 function showHelloWorldMessage() {
   vscode.window.showInformationMessage('Hello World from code-quick-refer!');
@@ -53,6 +54,10 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(copyLineNumberDisposable);
   context.subscriptions.push(formatHtmlDisposable);
   context.subscriptions.push(openWithSystemDisposable);
+
+  // 初始化文件夹收藏功能
+  const favoritesDisposables = initializeFavorites(context);
+  context.subscriptions.push(...favoritesDisposables);
 }
 
 // This method is called when your extension is deactivated
