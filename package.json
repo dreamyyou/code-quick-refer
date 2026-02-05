@@ -3,7 +3,7 @@
   "displayName": "code-quick-refer",
   "description": "copy a reference of code quickly.",
   "publisher": "wikichen",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "repository": {
     "type": "git",
     "url": "https://github.com/dreamyyou/code-quick-refer.git"

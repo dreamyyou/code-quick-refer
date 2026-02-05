@@ -178,7 +178,45 @@ function render(tokens: Token[]): string {
 
     if (token.type === 'rawText') {
       const startTag = token.attributes ? `<${token.tagName} ${token.attributes}>` : `<${token.tagName}>`;
-      lines.push(INDENT.repeat(depth) + startTag + token.content + `</${token.tagName}>`);
+      const contentLines = token.content.split('\n');
+      // 去掉首尾空行
+      while (contentLines.length > 0 && contentLines[0].trim() === '') {
+        contentLines.shift();
+      }
+      while (contentLines.length > 0 && contentLines[contentLines.length - 1].trim() === '') {
+        contentLines.pop();
+      }
+
+      if (contentLines.length === 0) {
+        // 空内容，单行输出
+        lines.push(INDENT.repeat(depth) + startTag + `</${token.tagName}>`);
+      } else if (contentLines.length === 1 && contentLines[0].trim().length < 60) {
+        // 单行短内容，保持单行
+        lines.push(INDENT.repeat(depth) + startTag + contentLines[0].trim() + `</${token.tagName}>`);
+      } else {
+        // 多行内容，保持原有相对缩进结构
+        lines.push(INDENT.repeat(depth) + startTag);
+        const baseIndent = INDENT.repeat(depth + 1);
+        // 计算原内容的最小缩进
+        let minIndent = Infinity;
+        for (const line of contentLines) {
+          if (line.trim().length > 0) {
+            const leadingSpaces = line.match(/^(\s*)/)![1].length;
+            minIndent = Math.min(minIndent, leadingSpaces);
+          }
+        }
+        if (minIndent === Infinity) {
+          minIndent = 0;
+        }
+        // 输出时去掉公共缩进，加上 HTML 层级缩进
+        for (const line of contentLines) {
+          if (line.trim().length > 0) {
+            const relativeIndent = line.slice(minIndent);
+            lines.push(baseIndent + relativeIndent);
+          }
+        }
+        lines.push(INDENT.repeat(depth) + `</${token.tagName}>`);
+      }
       continue;
     }
 
